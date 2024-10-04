@@ -35,7 +35,7 @@ void APistol::Shoot()
 {
 	//WHAT IT DO HERE
 	AmmoCount--;
-	
+
 	if (AmmoCount <= 0)
 	{
 		// Play empty clip sound
@@ -45,13 +45,13 @@ void APistol::Shoot()
 		}
 		return; // Exit the function if no ammo
 	}
-	
+
 	if (Bullet != nullptr && MuzzleLocation)
 	{
 		FVector MuzzlePos = MuzzleLocation->GetComponentLocation();
 		FRotator MuzzleRotation = MuzzleLocation->GetComponentRotation();
 		UWorld* World = GetWorld();
-	
+
 		if (World != nullptr)
 		{
 			World->SpawnActor<ABullet>(Bullet, MuzzlePos, MuzzleRotation);
