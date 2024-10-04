@@ -10,8 +10,6 @@ ABullet::ABullet()
  	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 
-
-
 	CollisionComponent = CreateDefaultSubobject<USphereComponent>(TEXT("CollisionComponent"));
 	CollisionComponent->SetupAttachment(RootComponent);
 
@@ -29,7 +27,6 @@ ABullet::ABullet()
 
 void ABullet::OnHit(UPrimitiveComponent* HitComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit)
 {
-	// 
 	if (!OtherActor->IsA<ABullet>())
 		Destroy();
 }

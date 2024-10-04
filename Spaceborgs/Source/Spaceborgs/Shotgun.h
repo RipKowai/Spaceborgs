@@ -22,6 +22,7 @@ protected:
 
 public:
 	void Shoot() override;
+
 	void Reload() override;
 
 
@@ -29,6 +30,12 @@ public:
 private:
 	UPROPERTY(EditAnywhere)
 	class UStaticMeshComponent* MuzzleLocation;
+
+	UPROPERTY(VisibleAnywhere)
+	float Timer;
+
+	UPROPERTY()
+	bool IsDelaying;
 
 };
 

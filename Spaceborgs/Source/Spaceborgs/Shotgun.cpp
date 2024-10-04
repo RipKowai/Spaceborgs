@@ -10,7 +10,9 @@ AShotgun::AShotgun()
 	MaxAmmo = 12;
 	AmmoCount = MaxAmmo;
 	ReloadTime = 2.0f;
-	FireRate = 0.5f;
+	FireRate = 1.f;
+	Timer = FireRate;
+	IsDelaying = false;
 	MuzzleFlash = nullptr;
 	FireSound = nullptr;
 	ReloadSound = nullptr;
@@ -28,49 +30,64 @@ void AShotgun::BeginPlay()
 void AShotgun::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+
+	if (IsDelaying)
+	{
+		Timer += DeltaTime;
+		if (Timer > FireRate)
+		{
+			IsDelaying = false;
+		}
+	}
 }
 
 
 void AShotgun::Shoot()
 {
-	//WHAT IT DO HERE
-	AmmoCount--;
-
-	if (AmmoCount <= 0)
+	if (Timer >= FireRate)
 	{
-		// Play empty clip sound
-		if (EmptyClipSound != nullptr)
+		//WHAT IT DO HERE
+		AmmoCount--;
+
+		if (AmmoCount <= 0)
 		{
-			UGameplayStatics::PlaySoundAtLocation(this, EmptyClipSound, GetActorLocation());
-		}
-		return; // Exit the function if no ammo
-	}
-
-	if (Bullet != nullptr && MuzzleLocation)
-	{
-		FVector MuzzlePos = MuzzleLocation->GetComponentLocation();
-
-		FRotator MuzzleRotation = MuzzleLocation->GetComponentRotation();
-		UWorld* World = GetWorld();
-
-		if (World != nullptr)
-		{
-			for (int i = 0; i < 5; i++)
+			// Play empty clip sound
+			if (EmptyClipSound != nullptr)
 			{
-				FRotator RandomRot = MuzzleRotation;
-				RandomRot.Yaw += FMath::RandRange(-10.0f, 10.0f);
-				RandomRot.Pitch += FMath::RandRange(-5.0f, 5.0f);
-
-
-				World->SpawnActor<ABullet>(Bullet, MuzzlePos, RandomRot);
+				UGameplayStatics::PlaySoundAtLocation(this, EmptyClipSound, GetActorLocation());
 			}
-			GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, TEXT("BULLET HAS BEEN SHOT"));
+			return; // Exit the function if no ammo
+		}
+
+		if (Bullet != nullptr && MuzzleLocation)
+		{
+			FVector MuzzlePos = MuzzleLocation->GetComponentLocation();
+
+			FRotator MuzzleRotation = MuzzleLocation->GetComponentRotation();
+			UWorld* World = GetWorld();
+
+			if (World != nullptr)
+			{
+				for (int i = 0; i < 5; i++)
+				{
+					FRotator RandomRot = MuzzleRotation;
+					RandomRot.Yaw += FMath::RandRange(-10.0f, 10.0f);
+					RandomRot.Pitch += FMath::RandRange(-5.0f, 5.0f);
+
+					World->SpawnActor<ABullet>(Bullet, MuzzlePos, RandomRot);
+
+					Timer = 0;
+					IsDelaying = true;
+				}
+				GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, TEXT("BULLET HAS BEEN SHOT"));
+			}
+		}
+		if (FireSound != nullptr)
+		{
+			UGameplayStatics::PlaySoundAtLocation(this, FireSound, GetActorLocation());
 		}
 	}
-	if (FireSound != nullptr)
-	{
-		UGameplayStatics::PlaySoundAtLocation(this, FireSound, GetActorLocation());
-	}
+
 }
 
 void AShotgun::Reload()
