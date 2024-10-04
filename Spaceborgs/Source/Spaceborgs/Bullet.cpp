@@ -30,7 +30,8 @@ ABullet::ABullet()
 void ABullet::OnHit(UPrimitiveComponent* HitComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit)
 {
 	// 
-	Destroy();
+	if (!OtherActor->IsA<ABullet>())
+		Destroy();
 }
 
 // Called when the game starts or when spawned
