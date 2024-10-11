@@ -2,8 +2,19 @@
 
 
 #include "WeaponBase.h"
-#include "GameFramework/Actor.h"
 #include "Components/PrimitiveComponent.h"
+#include "Animation/AnimInstance.h"
+
+
+#include "Spaceborgs.h"
+#include "Bullet.h"
+#include "Components/StaticmeshComponent.h"
+#include "TP_WeaponComponent.h"
+#include "Kismet/GameplayStatics.h"
+#include "Kismet/KismetMathLibrary.h"
+
+
+
 #include "SpaceborgsCharacter.h"
 
 // Sets default values
@@ -14,6 +25,9 @@ AWeaponBase::AWeaponBase()
 
 	IsPickedUp = false;
 	IsEquipped = false;
+
+	IsRifle = false;
+	ReloadTime = 1.f;
 }
 
 // Called when the game starts or when spawned
@@ -21,6 +35,15 @@ void AWeaponBase::BeginPlay()
 {
 	Super::BeginPlay();
 
+}
+
+void AWeaponBase::ShootRifle(float DeltaTime, FHitResult OutHit, class ASpaceborgsCharacter* controller, UAnimMontage* ShootMontage)
+{
+	UAnimInstance* pAnimInstance = controller->GetMesh1P()->GetAnimInstance();
+	if (pAnimInstance)
+	{
+		pAnimInstance->Montage_Play(ShootMontage);
+	}
 }
 
 // Called every frame
@@ -34,20 +57,43 @@ void AWeaponBase::AttachToWeaponHolder(class ASpaceborgsCharacter* controller, U
 {
 	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, TEXT("Attach to weapon holder"));
 
+	controller->HasWeapon = true;
+
 	FAttachmentTransformRules AttachmentRules(EAttachmentRule::SnapToTarget, true);
 	this->AttachToComponent(GunHolder, AttachmentRules);
 	UE_LOG(LogTemp, Warning, TEXT("Weapon attached to socket"));
 
 }
 
-void AWeaponBase::Shoot()
+void AWeaponBase::Shoot(FHitResult OutHit, class ASpaceborgsCharacter* controller, UAnimMontage* ShootMontage)
 {
-
+	UAnimInstance* pAnimInstance = controller->GetMesh1P()->GetAnimInstance();
+	if (pAnimInstance)
+	{
+		pAnimInstance->Montage_Play(ShootMontage);
+	}
 }
 
 
-void AWeaponBase::Reload()
+
+void AWeaponBase::Reload(class ASpaceborgsCharacter* controller, UAnimMontage* ReloadMontage)
 {
+	if (R_IsDelaying == false)
+	{
+		if (AmmoCount < MaxAmmo)
+		{
+			UAnimInstance* pAnimInstance = controller->GetMesh1P()->GetAnimInstance();
+			if (pAnimInstance)
+			{
+				pAnimInstance->Montage_Play(ReloadMontage, 1.0f);
+			}
+			AmmoCount = MaxAmmo;
+			R_IsDelaying = true;
+			R_Timer = ReloadTime;
+			GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, TEXT("RELOADING"));
+			UGameplayStatics::PlaySoundAtLocation(this, ReloadSound, GetActorLocation());
+		}
+	}
 }
 
 
@@ -92,4 +138,9 @@ void AWeaponBase::ToggleHighlight(bool IsLookingAt)
 			}
 		}
 	}
+}
+
+void AWeaponBase::ChangeAnimationTree()
+{
+
 }

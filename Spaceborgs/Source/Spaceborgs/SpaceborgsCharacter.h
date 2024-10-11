@@ -63,8 +63,19 @@ class ASpaceborgsCharacter : public ACharacter
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	UInputAction* ReloadAction;
 
+	/** Slide Input Action */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
+	UInputAction* SlideAction;
+
 public:
 	ASpaceborgsCharacter();
+
+	UFUNCTION(BlueprintCallable)
+	void TakePlayerDamage(float Damage);
+
+
+	UFUNCTION(BlueprintImplementableEvent)
+	void Die();
 
 protected:
 	virtual void BeginPlay();
@@ -72,6 +83,9 @@ protected:
 	virtual void Tick(float DeltaTime) override;
 
 	void HandleRaycast(float DeltaTime);
+
+	UFUNCTION()
+	FHitResult GetAimHitTarget();
 
 	void SetLookingAtWeapon(bool IsLooking);
 
@@ -81,11 +95,30 @@ protected:
 	virtual void HandleEndOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
 
 
+
 public:
 
 	/** Look Input Action */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	class UInputAction* LookAction;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Weapon")
+	bool HasWeapon;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Key")
+	bool HasKey;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Key")
+	bool CanTakeKey;
+
+	UPROPERTY(EditAnywhere)
+	UAnimMontage* m_pShootMontage;
+
+	UPROPERTY(EditAnywhere)
+	UAnimMontage* m_pReloadMontage;
+
+	UPROPERTY(EditAnywhere)
+	UAnimMontage* m_pSwitchWeaponMontage;
 
 protected:
 	/** Called for movement input */
@@ -96,6 +129,9 @@ protected:
 
 	/** Called for PickUp input */
 	void PickUp(const FInputActionValue& Value);
+
+	/** Called for PickUp input */
+	void Key_PickUp(const FInputActionValue& Value);
 
 	/** Called for SwitchWeapon input */
 	void SwitchWeapon(const FInputActionValue& Value);
@@ -111,10 +147,14 @@ protected:
 
 	void Reload(const FInputActionValue& Value);
 
+	
 protected:
 	// APawn interface
 	virtual void SetupPlayerInputComponent(UInputComponent* InputComponent) override;
 	// End of APawn interface
+
+	UPROPERTY(VisibleAnywhere)
+	bool IsShooting;
 
 	UPROPERTY(EditAnywhere)
 	AActor* Target = nullptr;
@@ -140,12 +180,30 @@ protected:
 	UPROPERTY(VisibleAnywhere)
 	TArray<class AWeaponBase*> WeaponsCloseTo;
 
+	UPROPERTY(BlueprintReadOnly, Category="Player Health")
+	float MaxHealth;
+
+	UPROPERTY(BlueprintReadWrite, Category="Player Health")
+	float Health;
+
+	UPROPERTY(VisibleAnywhere)
+	bool IsSwitchingWeapon;
+
 
 public:
 	/** Returns Mesh1P subobject **/
 	USkeletalMeshComponent* GetMesh1P() const { return Mesh1P; }
 	/** Returns FirstPersonCameraComponent subobject **/
 	UCameraComponent* GetFirstPersonCameraComponent() const { return FirstPersonCameraComponent; }
+
+
+private:
+	UPROPERTY(EditDefaultsOnly)
+	FVector CrouchEyeOffset;
+
+	UPROPERTY(EditDefaultsOnly)
+	float CrouchSpeed;
+
 
 };
 

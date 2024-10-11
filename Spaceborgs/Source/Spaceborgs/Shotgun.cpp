@@ -2,13 +2,17 @@
 
 
 #include "Shotgun.h"
+#include "SpaceborgsCharacter.h"
+#include "Kismet/GameplayStatics.h"
+#include "Kismet/KismetMathLibrary.h"
+#include "Bullet.h"
 
 AShotgun::AShotgun()
 {
 	Damage = 25.0f;
 	Range = 1000.0f;
-	MaxAmmo = 12;
-	AmmoCount = MaxAmmo;
+	MaxAmmo = 10;
+	AmmoCount = 10;
 	ReloadTime = 2.0f;
 	FireRate = 1.f;
 	Timer = FireRate;
@@ -16,6 +20,8 @@ AShotgun::AShotgun()
 	MuzzleFlash = nullptr;
 	FireSound = nullptr;
 	ReloadSound = nullptr;
+
+	RecoilValue = 1000.f;
 
 }
 
@@ -39,16 +45,23 @@ void AShotgun::Tick(float DeltaTime)
 			IsDelaying = false;
 		}
 	}
+	if (R_IsDelaying)
+	{
+		R_Timer -= DeltaTime;
+
+		if (R_Timer <= 0)
+		{
+			R_IsDelaying = false;
+			R_Timer = 0; // Optional: Reset the timer to 0
+		}
+	}
 }
 
 
-void AShotgun::Shoot()
+void AShotgun::Shoot(FHitResult OutHit, class ASpaceborgsCharacter* controller, UAnimMontage* ShootMontage)
 {
 	if (Timer >= FireRate)
 	{
-		//WHAT IT DO HERE
-		AmmoCount--;
-
 		if (AmmoCount <= 0)
 		{
 			// Play empty clip sound
@@ -61,9 +74,15 @@ void AShotgun::Shoot()
 
 		if (Bullet != nullptr && MuzzleLocation)
 		{
+			Super::Shoot(OutHit, controller, ShootMontage);
+
+			//WHAT IT DO HERE
+			AmmoCount--;
+
 			FVector MuzzlePos = MuzzleLocation->GetComponentLocation();
 
 			FRotator MuzzleRotation = MuzzleLocation->GetComponentRotation();
+
 			UWorld* World = GetWorld();
 
 			if (World != nullptr)
@@ -79,6 +98,21 @@ void AShotgun::Shoot()
 					Timer = 0;
 					IsDelaying = true;
 				}
+
+				
+				ParentActor = GetAttachParentActor();
+				ASpaceborgsCharacter* ParentPlayer = Cast<ASpaceborgsCharacter>(ParentActor);
+
+				if (ParentPlayer)
+				{
+					FVector ForwardVector = GetActorForwardVector();
+
+					FVector RecoilVector = -ForwardVector * RecoilValue;
+
+					ParentPlayer->LaunchCharacter(RecoilVector, true, true);
+				}
+				
+
 				GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, TEXT("BULLET HAS BEEN SHOT"));
 			}
 		}
@@ -88,11 +122,4 @@ void AShotgun::Shoot()
 		}
 	}
 
-}
-
-void AShotgun::Reload()
-{
-	//AmmoCount + 12;
-	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, TEXT("RELOADING"));
-	UGameplayStatics::PlaySoundAtLocation(this, ReloadSound, GetActorLocation());
 }

@@ -2,6 +2,9 @@
 
 
 #include "Pistol.h"
+#include "Kismet/GameplayStatics.h"
+#include "Kismet/KismetMathLibrary.h"
+#include "Bullet.h"
 
 APistol::APistol()
 {
@@ -31,11 +34,8 @@ void APistol::Tick(float DeltaTime)
 }
 
 
-void APistol::Shoot()
+void APistol::Shoot(FHitResult OutHit, class ASpaceborgsCharacter* controller, UAnimMontage* ShootMontage)
 {
-	//WHAT IT DO HERE
-	AmmoCount--;
-
 	if (AmmoCount <= 0)
 	{
 		// Play empty clip sound
@@ -48,25 +48,23 @@ void APistol::Shoot()
 
 	if (Bullet != nullptr && MuzzleLocation)
 	{
+		Super::Shoot(OutHit, controller, ShootMontage);
+
+		//WHAT IT DO HERE
+		AmmoCount--;
+
 		FVector MuzzlePos = MuzzleLocation->GetComponentLocation();
-		FRotator MuzzleRotation = MuzzleLocation->GetComponentRotation();
+		FVector AimPoint = OutHit.bBlockingHit ? OutHit.Location : OutHit.TraceEnd;
+		FVector ShootDirection = (AimPoint - MuzzlePos).GetSafeNormal();
+
+		//FRotator MuzzleRotation = MuzzleLocation->GetComponentRotation();
+
 		UWorld* World = GetWorld();
 
 		if (World != nullptr)
 		{
-			World->SpawnActor<ABullet>(Bullet, MuzzlePos, MuzzleRotation);
+			World->SpawnActor<ABullet>(Bullet, MuzzlePos, UKismetMathLibrary::MakeRotFromX(ShootDirection));
 			GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, TEXT("BULLET HAS BEEN SHOT"));
 		}
 	}
-	if (FireSound != nullptr)
-	{
-		UGameplayStatics::PlaySoundAtLocation(this, FireSound, GetActorLocation());
-	}
-}
-
-void APistol::Reload()
-{
-	//AmmoCount + 12;
-	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, TEXT("RELOADING"));
-	UGameplayStatics::PlaySoundAtLocation(this, ReloadSound, GetActorLocation());
 }

@@ -2,7 +2,7 @@
 
 
 #include "SpawnLocation.h"
-#include "KismetSystemLibrary.generated.h"
+
 #include "Engine/World.h"
 
 // Sets default values
@@ -17,8 +17,6 @@ ASpawnLocation::ASpawnLocation()
 void ASpawnLocation::BeginPlay()
 {
 	Super::BeginPlay();
-	
-	SpawnEnemies();
 }
 
 // Called every frame
@@ -30,17 +28,18 @@ void ASpawnLocation::Tick(float DeltaTime)
 
 void ASpawnLocation::SpawnEnemies()
 {
-
 	for (int i = 0; i < NumOfEnemies; ++i)
 	{
-		FTimerHandle TimerHandle;
-		GetWorld()->GetTimerManager().SetTimer(TimerHandle, this, &ASpawnLocation::SpawnEnemy, 2.0f * i, false);
+		//FTimerHandle TimerHandle;
+		//GetWorld()->GetTimerManager().SetTimer(TimerHandle, this, &ASpawnLocation::SpawnEnemy, DelayTime * i, false);
+		FActorSpawnParameters SpawnParams;
+		GetWorld()->SpawnActor<AActor>(EnemyToSpawn, GetActorLocation(), GetActorRotation(), SpawnParams);
 	}
 }
 
-void ASpawnLocation::SpawnEnemy()
-{
-	FActorSpawnParameters SpawnParams;
-	GetWorld()->SpawnActor<AActor>(EnemyToSpawn, GetActorLocation(), GetActorRotation(), SpawnParams);
-}
+//void ASpawnLocation::SpawnEnemy()
+//{
+//	FActorSpawnParameters SpawnParams;
+//	GetWorld()->SpawnActor<AActor>(EnemyToSpawn, GetActorLocation(), GetActorRotation(), SpawnParams);
+//}
 

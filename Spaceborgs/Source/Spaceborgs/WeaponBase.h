@@ -4,12 +4,19 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
-#include "Spaceborgs.h"
-#include "Bullet.h"
-#include "Components/StaticmeshComponent.h"
-#include "Kismet/GameplayStatics.h"
-#include "TP_WeaponComponent.h"
+#include "NiagaraFunctionLibrary.h"
+#include "NiagaraComponent.h"
 #include "WeaponBase.generated.h"
+
+
+
+class UAnimMontage;
+class UNiagaraSystem;
+class USoundBase;
+class ABullet;
+class ASpaceborgsCharacter;
+class AStaticMeshComponent;
+
 
 UCLASS()
 class SPACEBORGS_API AWeaponBase : public AActor
@@ -24,6 +31,14 @@ public:
 	bool IsPickedUp;
 	UPROPERTY(VisibleAnywhere)
 	bool IsEquipped;
+
+	UPROPERTY(VisibleAnywhere)
+	bool IsRifle;
+
+	virtual void ShootRifle(float DeltaTime, 
+		FHitResult OutHit, 
+		class ASpaceborgsCharacter* controller,
+		UAnimMontage* ShootMontage);
 
 protected:
 	// Called when the game starts or when spawned
@@ -47,7 +62,7 @@ protected:
 	float FireRate;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SFX")
-	UParticleSystem* MuzzleFlash;
+	UNiagaraSystem* MuzzleFlash;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio")
 	USoundBase* FireSound;
@@ -58,7 +73,7 @@ protected:
 	USoundBase* ReloadSound;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Projectile")
-	TSubclassOf<class ABullet> Bullet;
+	TSubclassOf<ABullet> Bullet;
 
 public:
 	// Called every frame
@@ -66,12 +81,23 @@ public:
 
 	virtual void AttachToWeaponHolder(class ASpaceborgsCharacter* controller, UStaticMeshComponent* GunHolder);
 
-	virtual void Shoot();
+	virtual void Shoot(FHitResult OutHit, class ASpaceborgsCharacter* controller, UAnimMontage* ShootMontage);
 
-	virtual void Reload();
+	virtual void Reload(class ASpaceborgsCharacter* controller, UAnimMontage* ReloadMontage);
 
 	void ToggleVisibility();
 
 	void ToggleHighlight(bool IsLookingAt);
+
+	UFUNCTION(BlueprintCallable)
+	void ChangeAnimationTree();
+
+
+	UPROPERTY(VisibleAnywhere)
+	float R_Timer;
+
+	UPROPERTY(VisibleAnywhere)
+	bool R_IsDelaying;
+
 
 };

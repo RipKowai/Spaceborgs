@@ -21,10 +21,7 @@ protected:
 	virtual void Tick(float DeltaTime) override;
 
 public:
-	void Shoot() override;
-
-	void Reload() override;
-
+	void Shoot(FHitResult OutHit, class ASpaceborgsCharacter* controller, UAnimMontage* ShootMontage) override;
 
 
 private:
@@ -36,6 +33,12 @@ private:
 
 	UPROPERTY()
 	bool IsDelaying;
+
+	UPROPERTY()
+	AActor* ParentActor;
+
+	UPROPERTY(EditAnywhere)
+	float RecoilValue;
 
 };
 

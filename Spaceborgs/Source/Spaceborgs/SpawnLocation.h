@@ -20,6 +20,7 @@ protected:
 public:	
 	virtual void Tick(float DeltaTime) override;
 
+	UFUNCTION(BlueprintCallable)
 	void SpawnEnemies();
 
 	void SpawnEnemy();

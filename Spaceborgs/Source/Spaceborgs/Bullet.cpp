@@ -22,14 +22,16 @@ ABullet::ABullet()
 	ProjectileMovementComponent->InitialSpeed = 3000.0f;
 	ProjectileMovementComponent->MaxSpeed = 3000.0f;
 
-	CollisionComponent->OnComponentHit.AddDynamic(this, &ABullet::OnHit);
+	//CollisionComponent->OnComponentHit.AddDynamic(this, &ABullet::OnHit);
 }
 
-void ABullet::OnHit(UPrimitiveComponent* HitComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit)
-{
-	if (!OtherActor->IsA<ABullet>())
-		Destroy();
-}
+//void ABullet::OnHit(UPrimitiveComponent* HitComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit)
+//{
+//
+//	if (!OtherActor->IsA<ABullet>())
+//		Destroy();
+//
+//}
 
 // Called when the game starts or when spawned
 void ABullet::BeginPlay()

@@ -15,6 +15,8 @@
 #include "WeaponBase.h"
 #include "Engine/LocalPlayer.h"
 #include "DrawDebugHelpers.h"
+#include "Components/TimelineComponent.h"
+#include "Curves/CurveFloat.h"
 
 DEFINE_LOG_CATEGORY(LogTemplateCharacter);
 
@@ -49,7 +51,25 @@ ASpaceborgsCharacter::ASpaceborgsCharacter()
 
 	IsLookingAtWeapon = false;
 	IsCloseToWeapon = false;
+	HasWeapon = false;
+	HasKey = false;
+	CanTakeKey = false;
 
+	// Set starting health
+	MaxHealth = 100;
+	Health = MaxHealth;
+
+}
+
+void ASpaceborgsCharacter::TakePlayerDamage(float Damage)
+{
+	Health -= Damage;
+
+	UE_LOG(LogTemp, Warning, TEXT("You took Damage: %f"), Damage);
+	if (Health <= 0)
+	{
+		Die();
+	}
 }
 
 void ASpaceborgsCharacter::BeginPlay()
@@ -58,7 +78,10 @@ void ASpaceborgsCharacter::BeginPlay()
 	Super::BeginPlay();
 
 	SlotHolder = Cast<UStaticMeshComponent>(GetDefaultSubobjectByName(TEXT("GunHolder")));
+
 }
+
+
 
 void ASpaceborgsCharacter::Tick(float DeltaTime)
 {
@@ -66,37 +89,28 @@ void ASpaceborgsCharacter::Tick(float DeltaTime)
 
 	if (IsCloseToWeapon)
 		HandleRaycast(DeltaTime);
+	
+	if (IsShooting)
+	{
+		FHitResult OutHit = GetAimHitTarget();
 
+		CurrentWeapon->ShootRifle(DeltaTime, OutHit, this, m_pShootMontage);
+	}
+
+	//CanTakeKey = false;
 }
 
 void ASpaceborgsCharacter::HandleRaycast(float DeltaTime)
 {
-	FHitResult OutHit;
+	FHitResult OutHit = GetAimHitTarget();
 
-	FVector Start = GetFirstPersonCameraComponent()->GetComponentLocation();
-	FVector ForwardVector = FirstPersonCameraComponent->GetForwardVector();
-	FVector End = (Start + (ForwardVector * 1000.f));
-
-	FCollisionQueryParams CollisionParams;
-	CollisionParams.AddIgnoredActor(this);
-
-	bool isHit = GetWorld()->LineTraceSingleByChannel(OutHit, Start, End, ECC_Visibility, CollisionParams);
-
-
-	if (isHit)
+	if (OutHit.bBlockingHit)
 	{
-		if (OutHit.bBlockingHit)
+		AWeaponBase* Weapon = Cast<AWeaponBase>(OutHit.GetActor());
+		if (OutHit.GetActor()->IsA<AWeaponBase>() && WeaponsCloseTo.Contains(Weapon))
 		{
-			AWeaponBase* Weapon = Cast<AWeaponBase>(OutHit.GetActor());
-			if (OutHit.GetActor()->IsA<AWeaponBase>() && WeaponsCloseTo.Contains(Weapon))
-			{
-				Target = OutHit.GetActor();
-				SetLookingAtWeapon(true);
-			}
-			else
-			{
-				SetLookingAtWeapon(false);
-			}
+			Target = OutHit.GetActor();
+			SetLookingAtWeapon(true);
 		}
 		else
 		{
@@ -107,7 +121,32 @@ void ASpaceborgsCharacter::HandleRaycast(float DeltaTime)
 	{
 		SetLookingAtWeapon(false);
 	}
+
 }
+
+FHitResult ASpaceborgsCharacter::GetAimHitTarget()
+{
+	FHitResult OutHit;
+
+	FVector Start = GetFirstPersonCameraComponent()->GetComponentLocation();
+	FVector ForwardVector = FirstPersonCameraComponent->GetForwardVector();
+	FVector End = (Start + (ForwardVector * 6000.f));
+
+	FCollisionQueryParams CollisionParams;
+	CollisionParams.AddIgnoredActor(this);
+
+	for (AWeaponBase* Weapon : WeaponInventory)
+	{
+		CollisionParams.AddIgnoredActor(Weapon);
+	}
+
+	bool isHit = GetWorld()->LineTraceSingleByChannel(OutHit, Start, End, ECC_Visibility, CollisionParams);
+
+	//DrawDebugLine(GetWorld(), Start, End, FColor::Green, false, 5, 0, 0.1f);
+	return OutHit;
+}
+
+
 
 void ASpaceborgsCharacter::SetLookingAtWeapon(bool IsLooking)
 {
@@ -182,18 +221,16 @@ void ASpaceborgsCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInpu
 		// Switch Weapon
 		EnhancedInputComponent->BindAction(SwitchWeaponAction, ETriggerEvent::Started, this, &ASpaceborgsCharacter::SwitchWeapon);
 
-
 		// Sprint
 		EnhancedInputComponent->BindAction(SprintAction, ETriggerEvent::Started, this, &ASpaceborgsCharacter::Sprint);
 		EnhancedInputComponent->BindAction(SprintAction, ETriggerEvent::Completed, this, &ASpaceborgsCharacter::StopSprinting);
 
 		// Fire
 		EnhancedInputComponent->BindAction(FireAction, ETriggerEvent::Started, this, &ASpaceborgsCharacter::Fire);
-		//EnhancedInputComponent->BindAction(FireAction, ETriggerEvent::Completed, this, &ASpaceborgsCharacter::StopFire);
+		EnhancedInputComponent->BindAction(FireAction, ETriggerEvent::Completed, this, &ASpaceborgsCharacter::StopFire);
 
 		// Reload
 		EnhancedInputComponent->BindAction(ReloadAction, ETriggerEvent::Started, this, &ASpaceborgsCharacter::Reload);
-
 	}
 	else
 	{
@@ -230,6 +267,7 @@ void ASpaceborgsCharacter::Look(const FInputActionValue& Value)
 
 void ASpaceborgsCharacter::PickUp(const FInputActionValue& Value)
 {
+	CanTakeKey = true;
 	if (Target != nullptr && WeaponsCloseTo.Contains(Target) && IsLookingAtWeapon)
 	{
 		AWeaponBase* PickedUpWeapon = Cast<AWeaponBase>(Target);
@@ -265,10 +303,21 @@ void ASpaceborgsCharacter::PickUp(const FInputActionValue& Value)
 	}
 }
 
+void ASpaceborgsCharacter::Key_PickUp(const FInputActionValue& Value)
+{
+	CanTakeKey = true;
+}
+
 void ASpaceborgsCharacter::SwitchWeapon(const FInputActionValue& Value)
 {
 	if (WeaponInventory.Num() > 0)
 	{
+		UAnimInstance* pAnimInstance = GetMesh1P()->GetAnimInstance();
+		if (pAnimInstance)
+		{
+			pAnimInstance->Montage_Play(m_pSwitchWeaponMontage);
+		}
+
 		CurrentWeaponIndex += (int)Value.Get<float>();
 
 		if (CurrentWeaponIndex > WeaponInventory.Num() - 1)
@@ -293,6 +342,9 @@ void ASpaceborgsCharacter::SwitchWeapon(const FInputActionValue& Value)
 
 }
 
+#pragma region Movement
+
+//Sprint
 void ASpaceborgsCharacter::Sprint(const FInputActionValue& Value)
 {
 	if (Controller != nullptr)
@@ -309,21 +361,36 @@ void ASpaceborgsCharacter::StopSprinting(const FInputActionValue& Value)
 	}
 }
 
+#pragma endregion
+
 void ASpaceborgsCharacter::Fire(const FInputActionValue& Value)
 {
 	if (CurrentWeapon)
-		CurrentWeapon->Shoot();
+	{
+		FHitResult OutHit = GetAimHitTarget();
+
+		if (CurrentWeapon->IsRifle)
+		{
+			IsShooting = true;
+		}
+		else
+		{
+			CurrentWeapon->Shoot(OutHit, this, m_pShootMontage);
+		}
+		
+	}
 }
+
 
 void ASpaceborgsCharacter::StopFire(const FInputActionValue& Value)
 {
-
+	IsShooting = false;
 }
 
 void ASpaceborgsCharacter::Reload(const FInputActionValue& Value)
 {
 	if (CurrentWeapon)
-		CurrentWeapon->Reload();
+		CurrentWeapon->Reload(this, m_pReloadMontage);
 }
 
 
